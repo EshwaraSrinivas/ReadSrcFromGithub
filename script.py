@@ -15,31 +15,32 @@ def fetch_files_from_github(repo_owner, repo_name, folder_path="src", branch="ma
     base_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{folder_path}?ref={branch}"
     headers = {"Accept": "application/vnd.github.v3+json"}
 
-    def download_file(file_url, file_path):
+    def download_file(file_url, file_name):
         response = requests.get(file_url)
         if response.status_code == 200:
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            os.makedirs(output_dir, exist_ok=True)
+            file_path = os.path.join(output_dir, file_name)
             with open(file_path, "wb") as f:
                 f.write(response.content)
             print(f"Downloaded: {file_path}")
         else:
             print(f"Failed to download {file_url}: {response.status_code}")
 
-    def fetch_folder_contents(url, local_path):
+    def fetch_folder_contents(url):
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             items = response.json()
             for item in items:
                 if item["type"] == "file":
                     file_url = item["download_url"]
-                    local_file_path = os.path.join(local_path, item["path"].replace(folder_path + "/", ""))
-                    download_file(file_url, local_file_path)
+                    file_name = item["name"]  # Use only the file name
+                    download_file(file_url, file_name)
                 elif item["type"] == "dir":
-                    fetch_folder_contents(item["url"], local_path)
+                    fetch_folder_contents(item["url"])
         else:
             print(f"Failed to fetch folder contents: {response.status_code}")
 
-    fetch_folder_contents(base_url, output_dir)
+    fetch_folder_contents(base_url)
 
 # Example usage
 if __name__ == "__main__":
